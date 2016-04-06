@@ -91,18 +91,24 @@ public class CreateSchemaTask extends SwingWorker<Void, Void> {
 		
 		try {		
 			File folderRoot = new File(folderPath);
+			if (!folderRoot.exists()) {
+				Utils.showError("Folder not found: "+folderPath);				
+				return false;				
+			}
 			File[] files = folderRoot.listFiles();
 			if (files == null) {
-				Utils.logError("Folder not found or without files: "+folderPath);				
+				Utils.showError("Folder has not any valid files: "+folderPath);				
 				return false;
 			}
 			Arrays.sort(files);
 			for (File file : files) {			
-				filePath = file.getPath();
-				if (!filePath.contains("\\_")) {
-					Utils.getLogger().info("Processing file: "+filePath);
-					status = processFile(filePath);
-					if (!status) return false;
+				if (!file.isDirectory()) {
+					filePath = file.getPath();
+					if (!filePath.contains("\\_")) {
+						Utils.getLogger().info("Processing file: "+filePath);
+						status = processFile(filePath);
+						if (!status) return false;
+					}
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -123,12 +129,21 @@ public class CreateSchemaTask extends SwingWorker<Void, Void> {
 		String filePath = "";
 		
 		try {
+			
 			// Process selected software folder
-			String folderRootPath = new File(".").getCanonicalPath()+File.separator+"sql"+File.separator+softwareAcronym+File.separator;
-			if (!processFolder(folderRootPath)) return false;
+			String folderRootPath = new File(".").getCanonicalPath()+File.separator+"sql"+File.separator;
+			String folderPath = folderRootPath+softwareAcronym+File.separator;
+			if (!processFolder(folderPath)) return false;
+			
+			// Process language folder
+	        String locale = PropertiesDao.getPropertiesFile().get("LANGUAGE", "en");
+			folderPath = folderRootPath+softwareAcronym+File.separator+"lang"+File.separator+locale+File.separator;
+			if (!processFolder(folderPath)) return false;
+			
 			// Process 'utils' folder
-			String folderUtilsPath = new File(".").getCanonicalPath()+File.separator+"sql"+File.separator+"utils"+File.separator;
-			if (!processFolder(folderUtilsPath)) return false;
+			folderPath = folderRootPath+File.separator+"utils"+File.separator;
+			if (!processFolder(folderPath)) return false;
+			
 		} catch (FileNotFoundException e) {
 			Utils.showError("inp_error_notfound", filePath);
 			status = false;
